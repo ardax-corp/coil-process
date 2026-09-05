@@ -22,15 +22,18 @@ endif
 
 ifeq ($(PLATFORM),macos)
   LIB := libprocess.dylib
+  CFLAGS_PIC := -fPIC
   LDFLAGS_SHLIB := -dynamiclib
   SMOKE_RPATH :=
 else ifeq ($(PLATFORM),windows)
   LIB := libprocess.dll
+  CFLAGS_PIC :=
   LDFLAGS_SHLIB := -shared
   SMOKE_RPATH :=
 else
   LIB := libprocess.so
-  LDFLAGS_SHLIB := -shared -fPIC
+  CFLAGS_PIC := -fPIC
+  LDFLAGS_SHLIB := -shared
   SMOKE_RPATH := -Wl,-rpath,'$$ORIGIN'
 endif
 
@@ -49,7 +52,7 @@ print-artifact:
 	@echo $(LIB_PATH)
 
 process.o: process.c process.h
-	$(CC) $(CFLAGS) -c -o $@ process.c
+	$(CC) $(CFLAGS) $(CFLAGS_PIC) -c -o $@ process.c
 
 $(LIB_PATH): process.o
 	$(CC) $(LDFLAGS_SHLIB) -o $@ $^

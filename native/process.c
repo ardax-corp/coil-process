@@ -20,9 +20,11 @@
 #include "process.h"
 
 #ifdef _WIN32
-extern char **environ;
+#include <stdlib.h>
+#define PROC_ENVIRON _environ
 #else
 extern char **environ;
+#define PROC_ENVIRON environ
 #endif
 
 static char g_last_error[256];
@@ -356,8 +358,8 @@ static char **build_envp(CoilProcCmd *cmd) {
         return NULL;
     }
     size_t base = 0;
-    if (cmd->inherit_env && environ) {
-        while (environ[base]) {
+    if (cmd->inherit_env && PROC_ENVIRON) {
+        while (PROC_ENVIRON[base]) {
             base++;
         }
     }
@@ -366,9 +368,9 @@ static char **build_envp(CoilProcCmd *cmd) {
         return (char **)(intptr_t)-1;
     }
     size_t n = 0;
-    if (cmd->inherit_env && environ) {
-        for (size_t i = 0; environ[i]; i++) {
-            envp[n++] = environ[i];
+    if (cmd->inherit_env && PROC_ENVIRON) {
+        for (size_t i = 0; PROC_ENVIRON[i]; i++) {
+            envp[n++] = PROC_ENVIRON[i];
         }
     }
     for (size_t i = 0; i < cmd->envc; i++) {

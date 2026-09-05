@@ -6,18 +6,11 @@
 #include "process.h"
 
 #ifdef _WIN32
-#define PROG_TRUE "cmd.exe"
-#define ARG_TRUE1 "/c"
-#define ARG_TRUE2 "exit 0"
-#define PROG_ECHO "cmd.exe"
-#define ARG_ECHO1 "/c"
-#define ARG_ECHO2 "echo hello"
-#define PROG_CAT "findstr"
-#define ARG_CAT "^"
+#define PROG_CMD "C:\\Windows\\System32\\cmd.exe"
+#define PROG_FINDSTR "C:\\Windows\\System32\\findstr.exe"
 #else
 #define PROG_TRUE "true"
 #define PROG_ECHO "echo"
-#define ARG_ECHO "hello"
 #define PROG_CAT "cat"
 #endif
 
@@ -37,13 +30,19 @@ static int64_t must_spawn(int64_t cmd) {
 }
 
 int main(void) {
-    int64_t cmd = coil_proc_cmd_new(PROG_TRUE);
+#ifdef _WIN32
+    int64_t cmd = coil_proc_cmd_new(PROG_CMD);
     if (!cmd) {
         fail("cmd true");
     }
-#ifdef _WIN32
-    if (coil_proc_cmd_arg(cmd, ARG_TRUE1) != 0 || coil_proc_cmd_arg(cmd, ARG_TRUE2) != 0) {
+    if (coil_proc_cmd_arg(cmd, "/c") != 0 || coil_proc_cmd_arg(cmd, "exit") != 0 ||
+        coil_proc_cmd_arg(cmd, "0") != 0) {
         fail("arg true");
+    }
+#else
+    int64_t cmd = coil_proc_cmd_new(PROG_TRUE);
+    if (!cmd) {
+        fail("cmd true");
     }
 #endif
     coil_proc_cmd_stdout(cmd, COIL_PROC_NULL);
@@ -56,15 +55,20 @@ int main(void) {
     }
     coil_proc_child_free(child);
 
+#ifdef _WIN32
+    cmd = coil_proc_cmd_new(PROG_CMD);
+    if (!cmd) {
+        fail("cmd echo");
+    }
+    coil_proc_cmd_arg(cmd, "/c");
+    coil_proc_cmd_arg(cmd, "echo");
+    coil_proc_cmd_arg(cmd, "hello");
+#else
     cmd = coil_proc_cmd_new(PROG_ECHO);
     if (!cmd) {
         fail("cmd echo");
     }
-#ifdef _WIN32
-    coil_proc_cmd_arg(cmd, ARG_ECHO1);
-    coil_proc_cmd_arg(cmd, ARG_ECHO2);
-#else
-    coil_proc_cmd_arg(cmd, ARG_ECHO);
+    coil_proc_cmd_arg(cmd, "hello");
 #endif
     coil_proc_cmd_stdout(cmd, COIL_PROC_CAPTURE);
     coil_proc_cmd_stderr(cmd, COIL_PROC_NULL);
@@ -82,12 +86,17 @@ int main(void) {
     free(out);
     coil_proc_child_free(child);
 
+#ifdef _WIN32
+    cmd = coil_proc_cmd_new(PROG_FINDSTR);
+    if (!cmd) {
+        fail("cmd cat");
+    }
+    coil_proc_cmd_arg(cmd, "^");
+#else
     cmd = coil_proc_cmd_new(PROG_CAT);
     if (!cmd) {
         fail("cmd cat");
     }
-#ifdef _WIN32
-    coil_proc_cmd_arg(cmd, ARG_CAT);
 #endif
     coil_proc_cmd_stdin(cmd, COIL_PROC_PIPE);
     coil_proc_cmd_stdout(cmd, COIL_PROC_CAPTURE);
@@ -108,18 +117,14 @@ int main(void) {
         fail("cat wait");
     }
     out = coil_proc_read_stdout(child);
-    if (!out || strcmp(out, "ping-pong") != 0) {
 #ifdef _WIN32
-        if (!out || strncmp(out, "ping-pong", 9) != 0) {
-            fprintf(stderr, "cat stdout=%s\n", out ? out : "(null)");
-            free(out);
-            return 1;
-        }
+    if (!out || strncmp(out, "ping-pong", 9) != 0) {
 #else
+    if (!out || strcmp(out, "ping-pong") != 0) {
+#endif
         fprintf(stderr, "cat stdout=%s\n", out ? out : "(null)");
         free(out);
         return 1;
-#endif
     }
     free(out);
     coil_proc_child_free(child);
