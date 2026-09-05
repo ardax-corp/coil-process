@@ -7,7 +7,10 @@ fn main() {
         Result::Ok(c) => c,
         Result::Err(_) => panic "command",
     };
-    cmd.arg("hello")?;
+    match cmd.arg("hello") {
+        Result::Ok(_) => {},
+        Result::Err(_) => panic "arg",
+    };
     let out = match cmd.output() {
         Result::Ok(v) => v,
         Result::Err(_) => panic "output",

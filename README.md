@@ -19,9 +19,11 @@ make test     # coil language harness (needs coil on PATH)
 ```
 
 ```coil
-use process::{command, Stdio};
+use process::{command};
 
-let out = command("echo")?.arg("hello")?.output()?;
+let cmd = command("echo")?;
+cmd.arg("hello")?;
+let out = cmd.output()?;
 // out.status == 0, out.stdout == "hello\n"
 ```
 

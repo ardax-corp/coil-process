@@ -1,4 +1,4 @@
-use process::{Command, Output, ProcessError, Stdio, command};
+use process::{Command, Child, Output, ProcessError, Stdio, command};
 
 fn must_cmd(Result r) -> Command {
     return match r {
@@ -7,10 +7,45 @@ fn must_cmd(Result r) -> Command {
     };
 }
 
+fn must_child(Result r) -> Child {
+    return match r {
+        Result::Ok(v) => v,
+        Result::Err(_) => panic "expected Child",
+    };
+}
+
 fn must_output(Result r) -> Output {
     return match r {
         Result::Ok(v) => v,
         Result::Err(_) => panic "expected Output",
+    };
+}
+
+fn must_int(Result r) -> int {
+    return match r {
+        Result::Ok(v) => v,
+        Result::Err(_) => panic "expected int",
+    };
+}
+
+fn must_string(Result r) -> string {
+    return match r {
+        Result::Ok(v) => v,
+        Result::Err(_) => panic "expected string",
+    };
+}
+
+fn must_ok(Result r) {
+    match r {
+        Result::Ok(_) => {},
+        Result::Err(_) => panic "expected Ok",
+    };
+}
+
+fn must_unit(Result r) {
+    match r {
+        Result::Ok(_) => {},
+        Result::Err(_) => panic "expected Ok",
     };
 }
 
@@ -26,16 +61,12 @@ fn expect_spawn(Result r) {
 
 test("true exits 0") {
     let cmd = must_cmd(command("true"));
-    let code = match cmd.status() {
-        Result::Ok(v) => v,
-        Result::Err(_) => panic "status",
-    };
-    assert(code == 0)?;
+    assert(must_int(cmd.status()) == 0)?;
 }
 
 test("echo captures stdout") {
     let cmd = must_cmd(command("echo"));
-    cmd.arg("hello")?;
+    must_unit(cmd.arg("hello"));
     let out = must_output(cmd.output());
     assert(out.status == 0)?;
     assert(out.stdout == "hello\n")?;
@@ -43,11 +74,7 @@ test("echo captures stdout") {
 
 test("false exits 1") {
     let cmd = must_cmd(command("false"));
-    let code = match cmd.status() {
-        Result::Ok(v) => v,
-        Result::Err(_) => panic "status",
-    };
-    assert(code == 1)?;
+    assert(must_int(cmd.status()) == 1)?;
 }
 
 test("missing program is Spawn") {
@@ -56,32 +83,21 @@ test("missing program is Spawn") {
 
 test("cat pipe round-trip") {
     let cmd = must_cmd(command("cat"));
-    cmd.stdin(Stdio::Pipe)?;
-    cmd.stdout(Stdio::Capture)?;
-    cmd.stderr(Stdio::Null)?;
-    let child = match cmd.spawn() {
-        Result::Ok(v) => v,
-        Result::Err(_) => panic "spawn cat",
-    };
-    child.write_stdin("ping-pong")?;
-    child.close_stdin()?;
-    let code = match child.wait() {
-        Result::Ok(v) => v,
-        Result::Err(_) => panic "wait cat",
-    };
-    assert(code == 0)?;
-    let text = match child.read_stdout() {
-        Result::Ok(v) => v,
-        Result::Err(_) => panic "read stdout",
-    };
-    assert(text == "ping-pong")?;
+    must_unit(cmd.stdin(Stdio::Pipe));
+    must_unit(cmd.stdout(Stdio::Capture));
+    must_unit(cmd.stderr(Stdio::Null));
+    let child = must_child(cmd.spawn());
+    must_unit(child.write_stdin("ping-pong"));
+    must_unit(child.close_stdin());
+    assert(must_int(child.wait()) == 0)?;
+    assert(must_string(child.read_stdout()) == "ping-pong")?;
 }
 
 test("env override is visible") {
     let cmd = must_cmd(command("sh"));
-    cmd.arg("-c")?;
-    cmd.arg("printf %s \"$COIL_PROC_TEST\"")?;
-    cmd.env("COIL_PROC_TEST", "from-env")?;
+    must_unit(cmd.arg("-c"));
+    must_unit(cmd.arg("printf %s \"$COIL_PROC_TEST\""));
+    must_unit(cmd.env("COIL_PROC_TEST", "from-env"));
     let out = must_output(cmd.output());
     assert(out.status == 0)?;
     assert(out.stdout == "from-env")?;
@@ -89,9 +105,9 @@ test("env override is visible") {
 
 test("cwd changes child directory") {
     let cmd = must_cmd(command("sh"));
-    cmd.arg("-c")?;
-    cmd.arg("pwd")?;
-    cmd.cwd("/")?;
+    must_unit(cmd.arg("-c"));
+    must_unit(cmd.arg("pwd"));
+    must_unit(cmd.cwd("/"));
     let out = must_output(cmd.output());
     assert(out.status == 0)?;
     assert(out.stdout == "/\n")?;

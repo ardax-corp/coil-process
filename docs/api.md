@@ -30,7 +30,7 @@ Handles are opaque native pointers cast to `int`. `Command` and `Child` run `coi
 | `command(program)` | Build `Command` |
 | `last_error()` | Last native error string (empty if none) |
 
-`Command` methods return `Result<Command, ProcessError>` so they can be chained, except spawn helpers:
+`Command` builders return `Result<(), ProcessError>` (do not return `self`; a returned `Command` would run `drop` and free the handle):
 
 | Method | Description |
 |--------|-------------|

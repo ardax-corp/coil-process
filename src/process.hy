@@ -39,17 +39,17 @@ enum ProcessError {
 }
 
 class Command {
-    handle: int,
+    pub handle: int,
 }
 
 class Child {
-    handle: int,
+    pub handle: int,
 }
 
 class Output {
-    status: int,
-    stdout: string,
-    stderr: string,
+    pub status: int,
+    pub stdout: string,
+    pub stderr: string,
 }
 
 fn err_from_code(int code) -> ProcessError {
@@ -85,106 +85,6 @@ fn command(string program) -> Result<Command, ProcessError> {
         raise ProcessError::Spawn;
     }
     return new Command(h);
-}
-
-impl Command {
-    fn drop() {
-        if self.handle != 0 {
-            coil_proc_cmd_free(self.handle);
-            self.handle = 0;
-        }
-    }
-
-    pub fn arg(string value) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_arg(self.handle, value))?;
-        return self;
-    }
-
-    pub fn args(Vec<string> values) -> Result<Command, ProcessError> {
-        let i = 0;
-        while i < values.len() {
-            self.arg(values[i])?;
-            i = i + 1;
-        }
-        return self;
-    }
-
-    pub fn env(string key, string val) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_env(self.handle, key, val))?;
-        return self;
-    }
-
-    pub fn env_clear() -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_clear_env(self.handle))?;
-        return self;
-    }
-
-    pub fn cwd(string path) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_cwd(self.handle, path))?;
-        return self;
-    }
-
-    pub fn stdin(Stdio mode) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_stdin(self.handle, mode))?;
-        return self;
-    }
-
-    pub fn stdout(Stdio mode) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_stdout(self.handle, mode))?;
-        return self;
-    }
-
-    pub fn stderr(Stdio mode) -> Result<Command, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        check_rc(coil_proc_cmd_stderr(self.handle, mode))?;
-        return self;
-    }
-
-    pub fn spawn() -> Result<Child, ProcessError> {
-        if self.handle == 0 {
-            raise ProcessError::Closed;
-        }
-        let h = coil_proc_cmd_spawn(self.handle);
-        if h == 0 {
-            raise ProcessError::Spawn;
-        }
-        self.handle = 0;
-        return new Child(h);
-    }
-
-    pub fn status() -> Result<int, ProcessError> {
-        let child = self.spawn()?;
-        return child.wait()?;
-    }
-
-    pub fn output() -> Result<Output, ProcessError> {
-        self.stdin(Stdio::Null)?;
-        self.stdout(Stdio::Capture)?;
-        self.stderr(Stdio::Capture)?;
-        let child = self.spawn()?;
-        let code = child.wait()?;
-        return new Output(code, child.read_stdout()?, child.read_stderr()?);
-    }
 }
 
 impl Child {
@@ -256,5 +156,107 @@ impl Child {
         }
         check_rc(coil_proc_kill(self.handle))?;
         return ();
+    }
+}
+
+impl Command {
+    fn drop() {
+        if self.handle != 0 {
+            coil_proc_cmd_free(self.handle);
+            self.handle = 0;
+        }
+    }
+
+    pub fn arg(string value) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_arg(self.handle, value))?;
+        return ();
+    }
+
+    pub fn args(Vec<string> values) -> Result<(), ProcessError> {
+        let i = 0;
+        while i < values.len() {
+            self.arg(values[i])?;
+            i = i + 1;
+        }
+        return ();
+    }
+
+    pub fn env(string key, string val) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_env(self.handle, key, val))?;
+        return ();
+    }
+
+    pub fn env_clear() -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_clear_env(self.handle))?;
+        return ();
+    }
+
+    pub fn cwd(string path) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_cwd(self.handle, path))?;
+        return ();
+    }
+
+    pub fn stdin(Stdio mode) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_stdin(self.handle, mode))?;
+        return ();
+    }
+
+    pub fn stdout(Stdio mode) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_stdout(self.handle, mode))?;
+        return ();
+    }
+
+    pub fn stderr(Stdio mode) -> Result<(), ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        check_rc(coil_proc_cmd_stderr(self.handle, mode))?;
+        return ();
+    }
+
+    pub fn spawn() -> Result<Child, ProcessError> {
+        if self.handle == 0 {
+            raise ProcessError::Closed;
+        }
+        let h = coil_proc_cmd_spawn(self.handle);
+        if h == 0 {
+            raise ProcessError::Spawn;
+        }
+        self.handle = 0;
+        return new Child(h);
+    }
+
+    pub fn status() -> Result<int, ProcessError> {
+        let child = self.spawn()?;
+        return child.wait()?;
+    }
+
+    pub fn output() -> Result<Output, ProcessError> {
+        self.stdin(Stdio::Null)?;
+        self.stdout(Stdio::Capture)?;
+        self.stderr(Stdio::Capture)?;
+        let child = self.spawn()?;
+        let code = child.wait()?;
+        let out = child.read_stdout()?;
+        let err = child.read_stderr()?;
+        return new Output(code, out, err);
     }
 }
