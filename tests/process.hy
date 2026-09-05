@@ -35,13 +35,6 @@ fn must_string(Result r) -> string {
     };
 }
 
-fn must_ok(Result r) {
-    match r {
-        Result::Ok(_) => {},
-        Result::Err(_) => panic "expected Ok",
-    };
-}
-
 fn must_unit(Result r) {
     match r {
         Result::Ok(_) => {},
