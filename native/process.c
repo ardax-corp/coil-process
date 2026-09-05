@@ -20,7 +20,6 @@
 #include "process.h"
 
 #ifdef _WIN32
-#include <stdlib.h>
 #define PROC_ENVIRON _environ
 #else
 extern char **environ;
@@ -775,13 +774,25 @@ static int drain_child_win(CoilProcChild *ch, int block) {
     return 0;
 }
 
+static int win_needs_quotes(const char *s) {
+    if (!s || s[0] == '\0') {
+        return 1;
+    }
+    for (const char *p = s; *p; p++) {
+        if (*p == ' ' || *p == '\t' || *p == '"') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static char *quote_win(const char *s) {
+    if (!win_needs_quotes(s)) {
+        return dup_cstr(s);
+    }
     size_t extra = 2;
     for (const char *p = s; *p; p++) {
-        if (*p == '"' || *p == '\\') {
-            extra++;
-        }
-        extra++;
+        extra += (*p == '"') ? 2 : 1;
     }
     char *out = (char *)malloc(extra + 1);
     if (!out) {
@@ -947,8 +958,12 @@ static CoilProcChild *spawn_win(CoilProcCmd *cmd) {
 
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(pi));
+    const char *app = NULL;
+    if (strchr(cmd->program, '\\') || strchr(cmd->program, '/')) {
+        app = cmd->program;
+    }
     BOOL ok = CreateProcessA(
-        NULL,
+        app,
         cmdline,
         NULL,
         NULL,

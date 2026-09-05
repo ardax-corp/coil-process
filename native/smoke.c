@@ -6,6 +6,7 @@
 #include "process.h"
 
 #ifdef _WIN32
+#define PROG_TRUE "C:\\Windows\\System32\\hostname.exe"
 #define PROG_CMD "C:\\Windows\\System32\\cmd.exe"
 #define PROG_FINDSTR "C:\\Windows\\System32\\findstr.exe"
 #else
@@ -30,21 +31,10 @@ static int64_t must_spawn(int64_t cmd) {
 }
 
 int main(void) {
-#ifdef _WIN32
-    int64_t cmd = coil_proc_cmd_new(PROG_CMD);
-    if (!cmd) {
-        fail("cmd true");
-    }
-    if (coil_proc_cmd_arg(cmd, "/c") != 0 || coil_proc_cmd_arg(cmd, "exit") != 0 ||
-        coil_proc_cmd_arg(cmd, "0") != 0) {
-        fail("arg true");
-    }
-#else
     int64_t cmd = coil_proc_cmd_new(PROG_TRUE);
     if (!cmd) {
         fail("cmd true");
     }
-#endif
     coil_proc_cmd_stdout(cmd, COIL_PROC_NULL);
     coil_proc_cmd_stderr(cmd, COIL_PROC_NULL);
     int64_t child = must_spawn(cmd);
