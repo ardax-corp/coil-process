@@ -62,6 +62,26 @@ fn expect_closed(Result r) {
     };
 }
 
+fn expect_closed_unit(Result r) {
+    match r {
+        Result::Ok(_) => panic "expected Closed",
+        Result::Err(e) => match e {
+            ProcessError::Closed => {},
+            default => panic "expected Closed",
+        },
+    };
+}
+
+fn expect_closed_opt(Result r) {
+    match r {
+        Result::Ok(_) => panic "expected Closed",
+        Result::Err(e) => match e {
+            ProcessError::Closed => {},
+            default => panic "expected Closed",
+        },
+    };
+}
+
 fn expect_invalid(Result r) {
     match r {
         Result::Ok(_) => panic "expected Invalid",
@@ -234,14 +254,14 @@ test("write after close_stdin is Closed") {
     must_unit(cmd.stderr(Stdio::Null));
     let child = must_child(cmd.spawn());
     must_unit(child.close_stdin());
-    expect_closed(child.write_stdin("late"));
+    expect_closed_unit(child.write_stdin("late"));
     assert(must_int(child.wait()) == 0)?;
 }
 
 test("write without pipe is Closed") {
     let cmd = must_cmd(command("true"));
     let child = must_child(cmd.spawn());
-    expect_closed(child.write_stdin("no-pipe"));
+    expect_closed_unit(child.write_stdin("no-pipe"));
     assert(must_int(child.wait()) == 0)?;
 }
 
@@ -288,7 +308,7 @@ test("bad cwd exits 127") {
 test("consumed command is Closed") {
     let cmd = must_cmd(command("true"));
     let child = must_child(cmd.spawn());
-    expect_closed(cmd.arg("late"));
+    expect_closed_unit(cmd.arg("late"));
     assert(must_int(child.wait()) == 0)?;
 }
 
@@ -297,8 +317,8 @@ test("dropped child is Closed") {
     let child = must_child(cmd.spawn());
     child.drop();
     expect_closed(child.wait());
-    expect_closed(child.try_wait());
-    expect_closed(child.kill());
+    expect_closed_opt(child.try_wait());
+    expect_closed_unit(child.kill());
 }
 
 test("wait is idempotent") {
