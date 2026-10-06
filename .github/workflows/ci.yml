@@ -58,24 +58,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: ardax-corp/coil-lang
-          path: coil-lang
-
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -y libffi-dev build-essential
+        run: sudo apt-get update && sudo apt-get install -y build-essential
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Build coil
-        run: cargo build --bin coil
-        working-directory: coil-lang
+      # coil comes from the coil-lang `edge` release (a snapshot of its main,
+      # rebuilt after every green coil-lang CI run) instead of a source build.
+      - name: Install coil (edge)
+        uses: ardax-corp/coil-lang/.github/actions/setup-coil@main
 
       - name: Build native artifact
         run: make
 
       - name: Test
         run: make test
-        env:
-          COIL: ${{ github.workspace }}/coil-lang/target/debug/coil
