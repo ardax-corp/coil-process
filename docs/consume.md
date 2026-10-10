@@ -41,7 +41,7 @@ let out = cmd.output()?;
 
 Function list and errors are in [api.md](api.md).
 
-Run the consumer with `--allow-dload process`. The lock still needs a native sha256 pin (`make test` writes one for this repo).
+Run the consumer with `--allow-dload process`. `dload` also needs a pin or a trusted stem: spool passes it from `coil.lock` (`[[package.native]] sha256`) or a `trusted = true` dependency; running `coil` directly, pass `--dload-pin process=SHA256` or `--dload-trusted process` (`make test` pins the library it builds).
 
 ## Git dep and coil.lock
 
@@ -80,7 +80,7 @@ git rev-parse HEAD
 git rev-parse 'HEAD^{tree}'
 ```
 
-The compiler does not read `coil.lock` for module discovery. Check out that `rev` and point `[module] roots` at its `src/`. Native libs stay on `[ffi] search_paths` until [COI-60](https://linear.app/ardax/issue/COI-60). Runtime `dload` still checks `[[package.native]] sha256`.
+The compiler does not read `coil.lock` for module discovery. Check out that `rev` and point `[module] roots` at its `src/`. Native libs stay on `[ffi] search_paths` until [COI-60](https://linear.app/ardax/issue/COI-60). Runtime `dload` still needs `--dload-pin process=SHA256` or `--dload-trusted process` (spool derives them from `coil.lock` / `trusted = true`).
 
 ## Lifecycle
 
