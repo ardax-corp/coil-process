@@ -68,4 +68,4 @@ Text I/O is C-string based (no interior NUL) in v1.
 
 ## C ABI (FFI)
 
-Declared in `extern "process"` inside `process.hy` (`coil_proc_*`). Names are not libc `system` / `execve` / `posix_spawn`, so `--allow-ffi-exec` is not required. Loading the library still needs `--allow-dload process` and a `coil.lock` native sha256 pin (see [consume.md](consume.md)).
+Declared in `extern "process"` inside `process.hy` (`coil_proc_*`). Names are not libc `system` / `execve` / `posix_spawn`, so `--allow-ffi-exec` is not required. Loading the library still needs `--allow-dload process` and `--dload-pin process=SHA256` or `--dload-trusted process` (spool passes them from `coil.lock` / `trusted = true`; see [consume.md](consume.md)).

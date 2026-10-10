@@ -18,15 +18,13 @@ native:
 smoke: native
 	$(MAKE) -C native smoke
 
-# Host grant is CLI-only. Runtime dload still needs a native sha256 pin.
+# SHA-256 of a built native library ($(1) = path without extension). coil's
+# dload gate needs `--dload-pin STEM=SHA256` (or `--dload-trusted STEM`).
+lib_sha = $(shell lib=$(1).so; [ -f $(1).dylib ] && lib=$(1).dylib; [ -f $(1).dll ] && lib=$(1).dll; \
+	if command -v sha256sum >/dev/null 2>&1; then sha256sum "$$lib"; else shasum -a 256 "$$lib"; fi 2>/dev/null | awk '{print $$1}')
+
 test: native
-	@lib=native/libprocess.so; \
-	  if [ -f native/libprocess.dylib ]; then lib=native/libprocess.dylib; fi; \
-	  if [ -f native/libprocess.dll ]; then lib=native/libprocess.dll; fi; \
-	  if command -v sha256sum >/dev/null 2>&1; then hash=$$(sha256sum "$$lib" | awk '{print $$1}'); \
-	  else hash=$$(shasum -a 256 "$$lib" | awk '{print $$1}'); fi; \
-	  printf '%s\n' '[[package]]' "name = 'process'" '[[package.native]]' "sha256 = '$$hash'" > coil.lock
-	$(COIL) test --allow-dload process --ffi-search-path native
+	$(COIL) test --allow-dload process --dload-pin process=$(call lib_sha,native/libprocess) --ffi-search-path native
 
 clean:
 	$(MAKE) -C native clean
