@@ -30,7 +30,7 @@ let out = cmd.output()?;
 Run the demo:
 
 ```bash
-coil --allow-dload process examples/echo.hy
+coil --ffi-search-path native --allow-dload process --dload-trusted process examples/echo.hy
 ```
 
 ## Docs
