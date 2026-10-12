@@ -1,3 +1,4 @@
+use tests::assert;
 use process::{Command, Child, Output, ProcessError, Stdio, command, last_error};
 
 fn must_cmd(Result r) -> Command {
@@ -114,20 +115,20 @@ fn expect_some_int(Result r) -> int {
 
 test("true exits 0") {
     let cmd = must_cmd(command("true"));
-    assert(must_int(cmd.status()) == 0)?;
+    assert!(must_int(cmd.status()) == 0);
 }
 
 test("echo captures stdout") {
     let cmd = must_cmd(command("echo"));
     must_unit(cmd.arg("hello"));
     let out = must_output(cmd.output());
-    assert(out.status == 0)?;
-    assert(out.stdout == "hello\n")?;
+    assert!(out.status == 0);
+    assert!(out.stdout == "hello\n");
 }
 
 test("false exits 1") {
     let cmd = must_cmd(command("false"));
-    assert(must_int(cmd.status()) == 1)?;
+    assert!(must_int(cmd.status()) == 1);
 }
 
 test("missing program is Spawn") {
@@ -142,8 +143,8 @@ test("cat pipe round-trip") {
     let child = must_child(cmd.spawn());
     must_unit(child.write_stdin("ping-pong"));
     must_unit(child.close_stdin());
-    assert(must_int(child.wait()) == 0)?;
-    assert(must_string(child.read_stdout()) == "ping-pong")?;
+    assert!(must_int(child.wait()) == 0);
+    assert!(must_string(child.read_stdout()) == "ping-pong");
 }
 
 test("env override is visible") {
@@ -152,8 +153,8 @@ test("env override is visible") {
     must_unit(cmd.arg("printf %s \"$COIL_PROC_TEST\""));
     must_unit(cmd.env("COIL_PROC_TEST", "from-env"));
     let out = must_output(cmd.output());
-    assert(out.status == 0)?;
-    assert(out.stdout == "from-env")?;
+    assert!(out.status == 0);
+    assert!(out.stdout == "from-env");
 }
 
 test("cwd changes child directory") {
@@ -162,8 +163,8 @@ test("cwd changes child directory") {
     must_unit(cmd.arg("pwd"));
     must_unit(cmd.cwd("/"));
     let out = must_output(cmd.output());
-    assert(out.status == 0)?;
-    assert(out.stdout == "/\n")?;
+    assert!(out.status == 0);
+    assert!(out.stdout == "/\n");
 }
 
 test("drop then spawn is Closed") {
@@ -181,13 +182,13 @@ test("empty program is Spawn") {
             default => panic "expected Spawn",
         },
     };
-    assert(last_error() != "")?;
+    assert!(last_error() != "");
 }
 
 test("spawn wait is status") {
     let cmd = must_cmd(command("true"));
     let child = must_child(cmd.spawn());
-    assert(must_int(child.wait()) == 0)?;
+    assert!(must_int(child.wait()) == 0);
 }
 
 test("echo via spawn captures stdout only") {
@@ -196,9 +197,9 @@ test("echo via spawn captures stdout only") {
     must_unit(cmd.stdout(Stdio::Capture));
     must_unit(cmd.stderr(Stdio::Null));
     let child = must_child(cmd.spawn());
-    assert(must_int(child.wait()) == 0)?;
-    assert(must_string(child.read_stdout()) == "only-out\n")?;
-    assert(must_string(child.read_stderr()) == "")?;
+    assert!(must_int(child.wait()) == 0);
+    assert!(must_string(child.read_stdout()) == "only-out\n");
+    assert!(must_string(child.read_stderr()) == "");
 }
 
 test("output captures stdout and stderr") {
@@ -206,9 +207,9 @@ test("output captures stdout and stderr") {
     must_unit(cmd.arg("-c"));
     must_unit(cmd.arg("printf %s out; printf %s err >&2; exit 3"));
     let out = must_output(cmd.output());
-    assert(out.status == 3)?;
-    assert(out.stdout == "out")?;
-    assert(out.stderr == "err")?;
+    assert!(out.status == 3);
+    assert!(out.stdout == "out");
+    assert!(out.stderr == "err");
 }
 
 test("stderr capture without stdout") {
@@ -218,9 +219,9 @@ test("stderr capture without stdout") {
     must_unit(cmd.stdout(Stdio::Null));
     must_unit(cmd.stderr(Stdio::Capture));
     let child = must_child(cmd.spawn());
-    assert(must_int(child.wait()) == 0)?;
-    assert(must_string(child.read_stdout()) == "")?;
-    assert(must_string(child.read_stderr()) == "e1")?;
+    assert!(must_int(child.wait()) == 0);
+    assert!(must_string(child.read_stdout()) == "");
+    assert!(must_string(child.read_stderr()) == "e1");
 }
 
 test("cat accepts two stdin writes") {
@@ -232,8 +233,8 @@ test("cat accepts two stdin writes") {
     must_unit(child.write_stdin("ping-"));
     must_unit(child.write_stdin("pong"));
     must_unit(child.close_stdin());
-    assert(must_int(child.wait()) == 0)?;
-    assert(must_string(child.read_stdout()) == "ping-pong")?;
+    assert!(must_int(child.wait()) == 0);
+    assert!(must_string(child.read_stdout()) == "ping-pong");
 }
 
 test("empty stdin pipe yields empty stdout") {
@@ -243,8 +244,8 @@ test("empty stdin pipe yields empty stdout") {
     must_unit(cmd.stderr(Stdio::Null));
     let child = must_child(cmd.spawn());
     must_unit(child.close_stdin());
-    assert(must_int(child.wait()) == 0)?;
-    assert(must_string(child.read_stdout()) == "")?;
+    assert!(must_int(child.wait()) == 0);
+    assert!(must_string(child.read_stdout()) == "");
 }
 
 test("write after close_stdin is Closed") {
@@ -255,14 +256,14 @@ test("write after close_stdin is Closed") {
     let child = must_child(cmd.spawn());
     must_unit(child.close_stdin());
     expect_closed_unit(child.write_stdin("late"));
-    assert(must_int(child.wait()) == 0)?;
+    assert!(must_int(child.wait()) == 0);
 }
 
 test("write without pipe is Closed") {
     let cmd = must_cmd(command("true"));
     let child = must_child(cmd.spawn());
     expect_closed_unit(child.write_stdin("no-pipe"));
-    assert(must_int(child.wait()) == 0)?;
+    assert!(must_int(child.wait()) == 0);
 }
 
 test("env_clear drops inherited keys") {
@@ -272,8 +273,8 @@ test("env_clear drops inherited keys") {
     must_unit(cmd.arg("-c"));
     must_unit(cmd.arg("printf %s \"${COIL_PROC_TEST-UNSET}\""));
     let out = must_output(cmd.output());
-    assert(out.status == 0)?;
-    assert(out.stdout == "UNSET")?;
+    assert!(out.status == 0);
+    assert!(out.stdout == "UNSET");
 }
 
 test("env override replaces same key") {
@@ -283,15 +284,15 @@ test("env override replaces same key") {
     must_unit(cmd.env("COIL_PROC_TEST", "first"));
     must_unit(cmd.env("COIL_PROC_TEST", "second"));
     let out = must_output(cmd.output());
-    assert(out.status == 0)?;
-    assert(out.stdout == "second")?;
+    assert!(out.status == 0);
+    assert!(out.stdout == "second");
 }
 
 test("invalid env key is Invalid") {
     let cmd = must_cmd(command("true"));
     expect_invalid(cmd.env("", "x"));
     expect_invalid(cmd.env("FOO=BAR", "x"));
-    assert(must_int(cmd.status()) == 0)?;
+    assert!(must_int(cmd.status()) == 0);
 }
 
 test("stdin Capture is Invalid") {
@@ -302,14 +303,14 @@ test("stdin Capture is Invalid") {
 test("bad cwd exits 127") {
     let cmd = must_cmd(command("true"));
     must_unit(cmd.cwd("/coil-process-no-such-cwd"));
-    assert(must_int(cmd.status()) == 127)?;
+    assert!(must_int(cmd.status()) == 127);
 }
 
 test("consumed command is Closed") {
     let cmd = must_cmd(command("true"));
     let child = must_child(cmd.spawn());
     expect_closed_unit(cmd.arg("late"));
-    assert(must_int(child.wait()) == 0)?;
+    assert!(must_int(child.wait()) == 0);
 }
 
 test("dropped child is Closed") {
@@ -324,9 +325,9 @@ test("dropped child is Closed") {
 test("wait is idempotent") {
     let cmd = must_cmd(command("false"));
     let child = must_child(cmd.spawn());
-    assert(must_int(child.wait()) == 1)?;
-    assert(must_int(child.wait()) == 1)?;
-    assert(expect_some_int(child.try_wait()) == 1)?;
+    assert!(must_int(child.wait()) == 1);
+    assert!(must_int(child.wait()) == 1);
+    assert!(expect_some_int(child.try_wait()) == 1);
     must_unit(child.kill());
 }
 
@@ -340,5 +341,5 @@ test("try_wait is None until kill") {
     expect_none(child.try_wait());
     must_unit(child.kill());
     let code = must_int(child.wait());
-    assert(code != 0)?;
+    assert!(code != 0);
 }
