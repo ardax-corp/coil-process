@@ -9,6 +9,8 @@
 .PHONY: all native smoke test clean dist
 
 COIL ?= coil
+# Extra module roots for `make test` (CI passes the coil-stdlib checkout).
+COIL_ROOTS ?=
 
 all: native
 
@@ -24,7 +26,7 @@ lib_sha = $(shell lib=$(1).so; [ -f $(1).dylib ] && lib=$(1).dylib; [ -f $(1).dl
 	if command -v sha256sum >/dev/null 2>&1; then sha256sum "$$lib"; else shasum -a 256 "$$lib"; fi 2>/dev/null | awk '{print $$1}')
 
 test: native
-	$(COIL) test --allow-dload process --dload-pin process=$(call lib_sha,native/libprocess) --ffi-search-path native
+	$(COIL) test --allow-dload process --dload-pin process=$(call lib_sha,native/libprocess) --ffi-search-path native $(COIL_ROOTS)
 
 clean:
 	$(MAKE) -C native clean
