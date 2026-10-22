@@ -12,6 +12,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# `actions: write` lets a failed job cancel the rest of its run.
+permissions:
+  contents: read
+  actions: write
+
 env:
   CI: "true"
 
@@ -58,6 +63,16 @@ jobs:
           export PATH="$MINGW_PREFIX/bin:/usr/bin:$PATH"
           make smoke
 
+      # Fail fast on pull requests: a failed job cancels the rest of the run,
+      # so a quick fix doesn't wait behind jobs that are already moot.
+      - name: Cancel the rest of the run
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   test:
     name: coil test (ubuntu)
     runs-on: ubuntu-latest
@@ -81,3 +96,13 @@ jobs:
 
       - name: Test
         run: make test COIL_ROOTS='--root ${{ steps.coil.outputs.stdlib }}'
+
+      # Fail fast on pull requests: a failed job cancels the rest of the run,
+      # so a quick fix doesn't wait behind jobs that are already moot.
+      - name: Cancel the rest of the run
+        if: failure() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
