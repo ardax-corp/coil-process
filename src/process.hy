@@ -1,4 +1,5 @@
 // Userland subprocess API — FFI shim over native/libprocess.
+use io::IoError;
 
 extern "process" {
     fn coil_proc_cmd_new(string program) -> int;
@@ -20,6 +21,7 @@ extern "process" {
     fn coil_proc_try_wait(int handle) -> int;
     fn coil_proc_kill(int handle) -> int;
     fn coil_proc_last_error() -> string;
+    fn coil_proc_last_io_kind() -> int;
 }
 
 #[repr(int)]
@@ -30,11 +32,17 @@ enum Stdio {
     Null = 3,
 }
 
+#[derive(Show, Eq)]
 enum ProcessError {
+    /// The program could not be started.
     Spawn,
-    Io,
+    /// A pipe read or write failed; the OS error is kept.
+    Io(IoError),
+    /// Waiting for the child failed.
     Wait,
+    /// The command or child was already used up or closed.
     Closed,
+    /// A bad argument, environment entry, directory or stdio mode.
     Invalid,
 }
 
@@ -57,7 +65,7 @@ fn err_from_code(int code) -> ProcessError {
         return ProcessError::Spawn;
     }
     if code == -2 {
-        return ProcessError::Io;
+        return ProcessError::Io(last_io_error());
     }
     if code == -3 {
         return ProcessError::Wait;
@@ -73,6 +81,30 @@ fn check_rc(int rc) -> Result<(), ProcessError> {
         raise err_from_code(rc);
     }
     return ();
+}
+
+/// The `IoError` for the native side's last OS failure (`COIL_PROC_IO_*`).
+fn last_io_error() -> IoError {
+    let kind = coil_proc_last_io_kind();
+    if kind == 2 {
+        return IoError::NotFound;
+    }
+    if kind == 3 {
+        return IoError::PermissionDenied;
+    }
+    if kind == 4 {
+        return IoError::AlreadyClosed;
+    }
+    if kind == 5 {
+        return IoError::InvalidInput;
+    }
+    if kind == 6 {
+        return IoError::WouldBlock;
+    }
+    if kind == 7 {
+        return IoError::TimedOut;
+    }
+    return IoError::Other;
 }
 
 fn last_error() -> string {

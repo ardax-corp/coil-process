@@ -1,4 +1,5 @@
 use tests::assert;
+use io::IoError;
 use process::{Command, Child, Output, ProcessError, Stdio, command, last_error};
 
 fn must_cmd(Result r) -> Command {
@@ -342,4 +343,26 @@ test("try_wait is None until kill") {
     must_unit(child.kill());
     let code = must_int(child.wait());
     assert!(code != 0);
+}
+
+test("write to a closed pipe keeps the OS error") {
+    // The child closes its stdin at once: a write then fails with EPIPE.
+    let cmd = must_cmd(command("/bin/sh"));
+    must_unit(cmd.arg("-c"));
+    must_unit(cmd.arg("exec 0<&-; sleep 1"));
+    must_unit(cmd.stdin(Stdio::Pipe));
+    let child = must_child(cmd.spawn());
+    let err = Option::None;
+    let tries = 0;
+    while err.is_none() && tries < 1000000 {
+        match child.write_stdin("x") {
+            Result::Ok(_) => {},
+            Result::Err(e) => {
+                err = Option::Some(e);
+            },
+        };
+        tries++;
+    }
+    must_unit(child.kill());
+    assert!(err == Option::Some(ProcessError::Io(IoError::AlreadyClosed)), "expected Io(AlreadyClosed)");
 }
