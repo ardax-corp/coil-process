@@ -12,7 +12,8 @@ For a wait-only child that inherits stdio, Coil already has `env::exec(program, 
 #[repr(int)]
 enum Stdio { Inherit = 0, Pipe = 1, Capture = 2, Null = 3 }
 
-enum ProcessError { Spawn, Io, Wait, Closed, Invalid }
+#[derive(Show, Eq)]
+enum ProcessError { Spawn, Io(IoError), Wait, Closed, Invalid }
 
 class Command { handle: int }
 class Child { handle: int }
@@ -61,7 +62,7 @@ Text I/O is C-string based (no interior NUL) in v1.
 | Variant | When |
 |---------|------|
 | `Spawn` | Program missing, `fork`/`CreateProcess` failed, empty program |
-| `Io` | Pipe read/write failed |
+| `Io(IoError)` | Pipe read/write failed; the OS error is kept (`AlreadyClosed` for a closed pipe, `PermissionDenied`, `NotFound`, ...) |
 | `Wait` | `waitpid` / wait failed or kill failed |
 | `Closed` | Use after `drop` or consumed `Command` |
 | `Invalid` | Bad mode, env key, or handle |
