@@ -13,6 +13,16 @@
 #define COIL_PROC_ERR_WAIT (-3)
 #define COIL_PROC_ERR_CLOSED (-4)
 #define COIL_PROC_ERR_INVALID (-5)
+
+/* `coil_proc_last_io_kind()`: what the last OS failure was, as `IoError`
+ * names it. 0 when the last error was not an OS failure. */
+#define COIL_PROC_IO_OTHER 1
+#define COIL_PROC_IO_NOT_FOUND 2
+#define COIL_PROC_IO_PERMISSION_DENIED 3
+#define COIL_PROC_IO_ALREADY_CLOSED 4
+#define COIL_PROC_IO_INVALID_INPUT 5
+#define COIL_PROC_IO_WOULD_BLOCK 6
+#define COIL_PROC_IO_TIMED_OUT 7
 #define COIL_PROC_PENDING (-6)
 
 int64_t coil_proc_cmd_new(const char *program);
@@ -35,3 +45,4 @@ int64_t coil_proc_wait(int64_t child);
 int64_t coil_proc_try_wait(int64_t child);
 int64_t coil_proc_kill(int64_t child);
 char *coil_proc_last_error(void);
+int64_t coil_proc_last_io_kind(void);
