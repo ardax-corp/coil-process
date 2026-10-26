@@ -26,9 +26,13 @@ extern char **environ;
 #define PROC_ENVIRON environ
 #endif
 
-static char g_last_error[256];
+/* Per thread: `coil test` runs tests on several threads at once. */
+static _Thread_local char g_last_error[256];
+/* `COIL_PROC_IO_*` kind of the last OS failure, 0 when it was not one. */
+static _Thread_local int g_last_io_kind = 0;
 
 static void set_error(const char *msg) {
+    g_last_io_kind = 0;
     if (!msg) {
         g_last_error[0] = '\0';
         return;
@@ -37,12 +41,56 @@ static void set_error(const char *msg) {
 }
 
 #ifdef _WIN32
+static int io_kind_of(DWORD code) {
+    switch (code) {
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+        return COIL_PROC_IO_NOT_FOUND;
+    case ERROR_ACCESS_DENIED:
+        return COIL_PROC_IO_PERMISSION_DENIED;
+    case ERROR_BROKEN_PIPE:
+    case ERROR_NO_DATA:
+    case ERROR_INVALID_HANDLE:
+        return COIL_PROC_IO_ALREADY_CLOSED;
+    case ERROR_INVALID_PARAMETER:
+        return COIL_PROC_IO_INVALID_INPUT;
+    default:
+        return COIL_PROC_IO_OTHER;
+    }
+}
+
 static void set_error_os(const char *prefix) {
     DWORD code = GetLastError();
+    g_last_io_kind = io_kind_of(code);
     snprintf(g_last_error, sizeof(g_last_error), "%s: win32 %lu", prefix, (unsigned long)code);
 }
 #else
+static int io_kind_of(int err) {
+    switch (err) {
+    case ENOENT:
+        return COIL_PROC_IO_NOT_FOUND;
+    case EACCES:
+    case EPERM:
+        return COIL_PROC_IO_PERMISSION_DENIED;
+    case EPIPE:
+    case EBADF:
+        return COIL_PROC_IO_ALREADY_CLOSED;
+    case EINVAL:
+        return COIL_PROC_IO_INVALID_INPUT;
+    case EAGAIN:
+#if EWOULDBLOCK != EAGAIN
+    case EWOULDBLOCK:
+#endif
+        return COIL_PROC_IO_WOULD_BLOCK;
+    case ETIMEDOUT:
+        return COIL_PROC_IO_TIMED_OUT;
+    default:
+        return COIL_PROC_IO_OTHER;
+    }
+}
+
 static void set_error_os(const char *prefix) {
+    g_last_io_kind = io_kind_of(errno);
     snprintf(g_last_error, sizeof(g_last_error), "%s: %s", prefix, strerror(errno));
 }
 #endif
@@ -1275,4 +1323,8 @@ int64_t coil_proc_kill(int64_t handle) {
 
 char *coil_proc_last_error(void) {
     return dup_cstr(g_last_error[0] ? g_last_error : "");
+}
+
+int64_t coil_proc_last_io_kind(void) {
+    return g_last_io_kind;
 }
