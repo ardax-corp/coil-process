@@ -3,6 +3,7 @@ name: ci
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -12,10 +13,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# `actions: write` lets a failed job cancel the rest of its run.
 permissions:
   contents: read
-  actions: write
 
 env:
   CI: "true"
@@ -29,10 +28,13 @@ jobs:
       matrix:
         include:
           - id: linux-gnu
+            triple: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - id: macos
+            triple: aarch64-apple-darwin
             os: macos-latest
           - id: windows-gnu
+            triple: x86_64-pc-windows-gnu
             os: windows-latest
             windows: true
     steps:
@@ -63,20 +65,32 @@ jobs:
           export PATH="$MINGW_PREFIX/bin:/usr/bin:$PATH"
           make smoke
 
-      # Fail fast on pull requests: a failed job cancels the rest of the run,
-      # so a quick fix doesn't wait behind jobs that are already moot.
-      - name: Cancel the rest of the run
-        if: failure() && github.event_name == 'pull_request'
-        continue-on-error: true
+      # The library this cell built, as the edge / release asset for its
+      # triple (the `publish` job below).
+      - name: Package native library
         shell: bash
-        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          lib=""
+          for f in native/libprocess.so native/libprocess.dylib native/libprocess.dll; do
+            if [ -f "$f" ]; then lib="$f"; fi
+          done
+          test -n "$lib"
+          mkdir -p dist/pkg/native
+          cp "$lib" dist/pkg/native/
+          tar -C dist/pkg -czf "dist/coil-process-native-${{ matrix.triple }}.tar.gz" native
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.triple }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
   test:
     name: coil test (ubuntu)
     runs-on: ubuntu-latest
-    needs: native
     steps:
       - uses: actions/checkout@v4
 
@@ -97,12 +111,71 @@ jobs:
       - name: Test
         run: make test COIL_ROOTS='--root ${{ steps.coil.outputs.stdlib }}'
 
-      # Fail fast on pull requests: a failed job cancels the rest of the run,
-      # so a quick fix doesn't wait behind jobs that are already moot.
-      - name: Cancel the rest of the run
-        if: failure() && github.event_name == 'pull_request'
-        continue-on-error: true
-        shell: bash
-        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+  # The native library of every target above, once all of CI is green: a
+  # push to main replaces the rolling `edge` pre-release, a v* tag gets a
+  # release of its own. Each archive unpacks `native/libprocess.*` into a
+  # coil-process checkout; SHA256SUMS also lists each library for `--dload-pin`.
+  publish:
+    name: publish (${{ github.ref_type == 'tag' && github.ref_name || 'edge' }})
+    needs: [native, test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          sha256sum -- *.tar.gz > SHA256SUMS
+          for a in *.tar.gz; do
+            d="$(mktemp -d)"
+            tar -C "$d" -xzf "$a"
+            (cd "$d" && sha256sum native/*) | sed "s|  native/|  ${a%.tar.gz}/|" >> SHA256SUMS
+          done
+          cat SHA256SUMS
+
+      - name: Update the edge release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f edge "$GITHUB_SHA"
+          git push -f origin refs/tags/edge
+          notes="Rolling pre-release of the coil-process native library, rebuilt from main after every green CI run.
+
+          Commit: ${GITHUB_SHA}
+          Built: $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          Not a stable release: the archives and this tag are replaced on every build.
+          \`coil-process-native-<triple>.tar.gz\` holds \`native/libprocess.*\` (unpack it in the package root); \`SHA256SUMS\` lists the archives and the libraries (for \`--dload-pin\`)."
+          if gh release view edge >/dev/null 2>&1; then
+            gh release edit edge --prerelease --title "edge" --notes "$notes"
+          else
+            gh release create edge --prerelease --verify-tag --title "edge" --notes "$notes"
+          fi
+          gh release upload edge dist/*.tar.gz dist/SHA256SUMS --clobber
+          # Drop assets this build did not produce (e.g. a removed target).
+          gh release view edge --json assets -q '.assets[].name' | while read -r name; do
+            if [[ ! -e "dist/$name" ]]; then
+              gh release delete-asset edge "$name" --yes
+            fi
+          done
+
+      - name: Publish the tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --verify-tag --title "$tag" \
+              --notes "coil-process $tag: \`coil-process-native-<triple>.tar.gz\` holds \`native/libprocess.*\` (unpack it in the package root); \`SHA256SUMS\` lists the archives and the libraries (for \`--dload-pin\`)."
+          fi
+          gh release upload "$tag" dist/*.tar.gz dist/SHA256SUMS --clobber
