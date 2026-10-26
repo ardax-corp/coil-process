@@ -26,17 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - id: linux-gnu
-            triple: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - id: macos
-            triple: aarch64-apple-darwin
-            os: macos-latest
-          - id: windows-gnu
-            triple: x86_64-pc-windows-gnu
-            os: windows-latest
-            windows: true
+        # Pull requests build and test on Linux only; pushes to main and v*
+        # tags also build macOS and Windows for the edge / release assets.
+        include: ${{ fromJSON(github.event_name == 'push' && '[{"id":"linux-gnu","triple":"x86_64-unknown-linux-gnu","os":"ubuntu-latest"},{"id":"macos","triple":"aarch64-apple-darwin","os":"macos-latest"},{"id":"windows-gnu","triple":"x86_64-pc-windows-gnu","os":"windows-latest","windows":true}]' || '[{"id":"linux-gnu","triple":"x86_64-unknown-linux-gnu","os":"ubuntu-latest"}]') }}
     steps:
       - uses: actions/checkout@v4
 
