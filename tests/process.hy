@@ -1,6 +1,6 @@
 use tests::assert;
 use io::IoError;
-use process::{Command, Child, Output, ProcessError, Stdio, command, last_error};
+use process::{Command, Child, Output, ProcessError, Stdio, command, exec, last_error};
 
 fn must_cmd(Result r) -> Command {
     return match r {
@@ -365,4 +365,14 @@ test("write to a closed pipe keeps the OS error") {
     }
     must_unit(child.kill());
     assert!(err == Option::Some(ProcessError::Io(IoError::AlreadyClosed)), "expected Io(AlreadyClosed)");
+}
+
+test("exec returns the exit code") {
+    let argv: Vec<string> = Vec::from(["-c", "exit 3"]);
+    assert!(must_int(exec("sh", argv)) == 3);
+}
+
+test("exec of a missing program is Spawn") {
+    let argv: Vec<string> = Vec::new();
+    expect_spawn(exec("coil-process-no-such-bin", argv));
 }

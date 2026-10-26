@@ -119,6 +119,15 @@ fn command(string program) -> Result<Command, ProcessError> {
     return new Command(h);
 }
 
+/// Run `program` with `argv` (without the program name) and wait for it.
+/// No shell; the child inherits cwd, environment and stdio. Returns the exit
+/// code (`128 + signal` on POSIX when the child was killed by a signal).
+fn exec(string program, Vec<string> argv) -> Result<int, ProcessError> {
+    let cmd = command(program)?;
+    cmd.args(argv)?;
+    return cmd.status()?;
+}
+
 impl Child {
     fn drop() {
         if self.handle != 0 {

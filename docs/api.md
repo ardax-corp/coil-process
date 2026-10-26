@@ -2,9 +2,14 @@
 
 Module: `use process::{…};` (package name `process` from `coil.toml`).
 
-OS spawn lives in this package's `native/` tree. It is not `env::exec` and not a coil-lang HostInvoke.
+OS spawn lives in this package's `native/` tree, not in a coil-lang HostInvoke (coil-lang has no `env::exec`).
 
-For a wait-only child that inherits stdio, Coil already has `env::exec(program, argv) -> Result<int, EnvError>` (`--allow-exec`). Use this package when you need pipes, capture, cwd, or a `Child` handle.
+## Functions
+
+| Function | Description |
+|----------|-------------|
+| `exec(program, argv)` | Run `program` with `argv` (no program name), inherit cwd/env/stdio, wait; returns the exit code. A program that cannot start is `Spawn` |
+| `command(program)` | A `Command` to configure and spawn |
 
 ## Types
 

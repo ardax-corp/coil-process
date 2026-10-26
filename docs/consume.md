@@ -2,7 +2,7 @@
 
 Package name is `process`. Put this package's `src/` on `--root` and `use process::{…}` resolves here. `extern "process"` in `src/process.hy` already loads the native library with `dload("process")`. Application code does not call `dload`.
 
-`env::exec` remains the simpler Coil builtin: inherit stdio, no pipes, `--allow-exec`. This package is the Job 2 surface (spawn + pipes/capture + wait).
+coil-lang has no `env::exec`; this package is how Coil code runs programs. `exec(program, argv)` waits and returns the exit code; `command` adds pipes, capture, env and cwd.
 
 ## Sibling checkout
 
