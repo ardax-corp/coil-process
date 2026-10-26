@@ -2,7 +2,7 @@
 
 Subprocess spawn, pipes, capture, and exit status for [Coil](https://github.com/ardax-corp/coil-lang). Package-native FFI (`extern "process"` + `Command` / `Child` with `fn drop()`). Not coil-lang HostInvoke.
 
-Coil already has wait-style `env::exec(program, argv) -> Result<int, EnvError>` (inherits stdio, no pipes, `--allow-exec`). Use this package when you need stdin/stdout/stderr pipes or captured output.
+This is where Coil runs programs: coil-lang has no `env::exec`. `exec(program, argv)` is the one-call form (inherit stdio, wait, exit code); `command` gives pipes, captured output, env and cwd.
 
 ## Requirements
 
