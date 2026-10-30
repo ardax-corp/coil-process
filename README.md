@@ -1,8 +1,12 @@
 # coil-process
 
+> **Deprecated.** Coil now has a built-in [`process`](https://github.com/ardax-corp/coil-website/tree/main/src/content/reference/process) module ([coil-lang#2141](https://github.com/ardax-corp/coil-lang/pull/2141)). It covers `exec`, `Command` (args, env, cwd, stdio), `Child` (pipes as `io::Stream`s, `wait` / `try_wait` / `kill` / `signal`) and captured `output`, needs no native library, and is granted with `--allow-exec` (`[permissions] exec = true` in spool). This package receives no more changes and will be archived.
+>
+> Migrating: `exec(program, argv)` keeps its signature, so drop this dependency and its `[ffi]` entries and add the grant. `command(p)?` becomes `Command::new(p)`, and the setters no longer return a `Result`.
+
 Subprocess spawn, pipes, capture, and exit status for [Coil](https://github.com/ardax-corp/coil-lang). Package-native FFI (`extern "process"` + `Command` / `Child` with `fn drop()`). Not coil-lang HostInvoke.
 
-This is where Coil runs programs: coil-lang has no `env::exec`. `exec(program, argv)` is the one-call form (inherit stdio, wait, exit code); `command` gives pipes, captured output, env and cwd.
+`exec(program, argv)` is the one-call form (inherit stdio, wait, exit code); `command` gives pipes, captured output, env and cwd.
 
 ## Requirements
 
